@@ -225,7 +225,8 @@ async function addContact(friend) {
 
 async function addAllContacts() {
   return Promise.all(friends.map(async function(friend) {
-    await sleep(friends.length*2000*Math.random());
+    // Google API limit is 20 per 100 seconds.  We do 2 requests per contact, so one every 12 seconds to be safe.
+    await sleep(friends.length*12000*Math.random());
     return addContact(friend);
   }));
 }
