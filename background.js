@@ -85,7 +85,9 @@ function getFBFriendsList() {
 
 async function populateFriends() {
   friends = await getFBFriendsList();
-  friends.splice(3);
+  
+  // Safety...
+  //friends.splice(3);
     
   return Promise.all(friends.map(function(friend) {
     var uid = friend['uid'];
