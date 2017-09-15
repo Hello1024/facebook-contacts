@@ -10,6 +10,7 @@ document.getElementById('mergebutton').onclick = function() {
 bgpage.update_fn = function() {
 
   document.getElementById('mergebutton').disabled = !bgpage.all_done;
+  document.getElementById('errorbox').innerText = bgpage.errortext;
 
   var contacts = bgpage.contacts;
   var output = document.getElementById('contacts');

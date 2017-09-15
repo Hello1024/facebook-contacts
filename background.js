@@ -54,6 +54,7 @@ function authenticatedXhr(method, url, data) {
 var contacts = [];
 var friends = [];
 var all_done = false;
+var errortext = '';
 var update_fn = function() {};
 
 function getFBFriendsList() {
@@ -259,12 +260,19 @@ async function populateContacts() {
   update_fn();  
 }
 
-function main() {
+async function main() {
   all_done=false;
-
-  Promise.all([populateContacts(), populateFriends()]).then( () => { all_done = true; update_fn(); });
-  
+  errortext = '';
   chrome.tabs.create({ 'url' : 'contacts.html'});
+  try {
+    await Promise.all([populateContacts(), populateFriends()])
+  } catch (err) {
+    console.error(err);
+    errortext = "Error occurred.  Proceed at your own risk, data may be incomplete: " + err.toString();
+  }
+  all_done = true;
+  update_fn();
+
 }
 
 chrome.browserAction.onClicked.addListener(main);
