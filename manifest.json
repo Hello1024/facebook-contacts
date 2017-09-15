@@ -1,6 +1,6 @@
 {
   "name": "Facebook Google contact sync tool",
-  "version": "1.0.8",
+  "version": "1.0.10",
   "icons": { "48": "img/icon-48.png",
             "128": "img/icon-128.png" },
   "description": "Gets a list of facebook and google contacts, and allows you to copy facebook contacts to google.",
@@ -20,14 +20,16 @@
     "https://www.google.com/accounts/OAuthGetRequestToken",
     "https://www.google.com/accounts/OAuthAuthorizeToken",
     "https://www.google.com/accounts/OAuthGetAccessToken",
-    "https://www.facebook.com/*"
+    "https://www.facebook.com/*",
+    "https://people.googleapis.com/*"
   ],
   "manifest_version": 2,
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA9M1lwj97IVH3byeD0fPz/zhgGxTDZNMwo5Hfu1Bbf3BArKZit7vb7EynpvHWDGb89xqn1smJQ3kXMNcedVGCYyCMjfkaAIRlTy69C4qf0uo0b/vnDYNH3nIDlKmIqMbA6jt/HCclzs6IDgpIkkhZlibNs14IhzhDGQbRh8k2j84VxoUpOCFGIU97Vefpd7JgLxcsT93bHm6xt+k92DKhTX7yYe8+EhLHw0DeC/7EpS2uotLyT+WE9ju5n9sPwPM5+iCRb+Mmxz8BZCD7l1I+irgzbX4I8uJxaljHOLtiwuerdA9VdmcnHvFDmLJ5CfHrAgEVoLLjHGEYHeQ5QFFRuQIDAQAB",
   "oauth2": {
     "client_id": "384199086477-ocq8lc8r9mt1jk2bed4k9b41pejoh2do.apps.googleusercontent.com",
     "scopes": [
-      "https://www.google.com/m8/feeds/"
+      "https://www.google.com/m8/feeds/",
+      "https://www.googleapis.com/auth/contacts"
     ]
   }
 }

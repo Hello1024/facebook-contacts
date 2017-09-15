@@ -64,7 +64,12 @@ function getFBFriendsList() {
       }).then(function(response){
     return response.text();
   }).then(function(txt){
-    return txt.match(/entity_id":"([0-9]+)"/)[1];
+    var match = txt.match(/fb:\/\/profile\/([0-9]+)/)
+    
+    //  We expect our own id at least 20 times, else we probably aren't logged in.
+    if (!match || txt.match(new RegExp(match[1], 'g')).length < 30) throw "You need to login to facebook first!";
+    
+    return match[1];
   });
   
   var saved_id
