@@ -1,51 +1,61 @@
-// Copyright (c) 2012 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// This is all UI rendering logic.  Should probably have used react...
+var bgpage = chrome.extension.getBackgroundPage();
 
+document.getElementById('mergebutton').onclick = function() {
+  bgpage.addAllContacts();
+  bgpage.all_done=false;
+  bgpage.update_fn();
+}
 
-chrome.extension.getBackgroundPage().update_fn = function() {
+bgpage.update_fn = function() {
 
-var contacts = chrome.extension.getBackgroundPage().contacts;
-var output = document.getElementById('contacts');
-output.innerHTML='';
-for (var i = 0, contact; contact = contacts[i]; i++) {
-  var div = document.createElement('div');
-  var pName = document.createElement('h3');
-  var ulEmails = document.createElement('ul');
+  document.getElementById('mergebutton').disabled = !bgpage.all_done;
 
-  pName.innerText = contact['name'];
-  div.appendChild(pName);
+  var contacts = bgpage.contacts;
+  var output = document.getElementById('contacts');
+  output.innerHTML='';
+  for (var i = 0, contact; contact = contacts[i]; i++) {
+    var div = document.createElement('div');
+    var pName = document.createElement('h3');
+    var ulEmails = document.createElement('ul');
 
-  for (var j = 0, email; email = contact['emails'][j]; j++) {
-    var liEmail = document.createElement('li');
-    liEmail.innerText = email;
-    ulEmails.appendChild(liEmail);
+    pName.innerText = contact['name'];
+    div.appendChild(pName);
+
+    for (var j = 0, email; email = contact['emails'][j]; j++) {
+      var liEmail = document.createElement('li');
+      liEmail.innerText = email;
+      ulEmails.appendChild(liEmail);
+    }
+
+    div.appendChild(ulEmails);
+    output.appendChild(div);
   }
 
-  div.appendChild(ulEmails);
-  output.appendChild(div);
-}
-
-var contacts = chrome.extension.getBackgroundPage().friends;
-var output = document.getElementById('friends');
-output.innerHTML='';
-for (var i = 0, contact; contact = contacts[i]; i++) {
-  var div = document.createElement('div');
-  var pName = document.createElement('h3');
-  var pBirthday = document.createElement('p');
-  var pAddress = document.createElement('p');
-  
-  pName.innerText = contact['text'];
-  div.appendChild(pName);
-  pBirthday.innerText = contact['Birthday'];
-  div.appendChild(pBirthday);
-  pAddress.innerText = contact['Address'];
-  div.appendChild(pAddress);
-
-  
-  output.appendChild(div);
-}
+  var contacts = bgpage.friends;
+  var output = document.getElementById('friends');
+  output.innerHTML='';
+  for (var i = 0, contact; contact = contacts[i]; i++) {
+    var div = document.createElement('div');
+    var pName = document.createElement('h3');
+    
+    pName.innerText = contact['text'];
+    if (contact['merged']) pName.className = "merged";
+    if (!contact['loaded']) pName.className = "loading";
+    
+    div.appendChild(pName);
+    
+    ['Mobile Phones', 'Email', 'Address', 'Birthday'].forEach(item => {
+      var p = document.createElement('p');
+      if (contact[item]) {
+        p.innerText = contact[item];
+        div.appendChild(p);
+      }
+    });
+    
+    output.appendChild(div);
+  }
 
 };
 
-chrome.extension.getBackgroundPage().update_fn();
+bgpage.update_fn();

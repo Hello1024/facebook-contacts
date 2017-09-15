@@ -1,16 +1,16 @@
 {
   "name": "Facebook Google contact sync tool",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "icons": { "48": "img/icon-48.png",
             "128": "img/icon-128.png" },
-  "description": "Uses OAuth to connect to Google's contacts service and display a list of your contacts.",
+  "description": "Gets a list of facebook and google contacts, and allows you to copy facebook contacts to google.",
   "background": {
     "scripts": [
       "background.js"
     ]
   },
   "browser_action": {
-    "default_title": "",
+    "default_title": "Click to see your contacts on Facebook and Google",
     "default_icon": "img/icon-19-off.png"
   },
   "permissions": [

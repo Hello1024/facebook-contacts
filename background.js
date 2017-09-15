@@ -6,44 +6,54 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// callback = function (error, httpStatus, responseText);
-function authenticatedXhr(method, url, callback) {
-  var retry = true;
-  function getTokenAndXhr() {
-    chrome.identity.getAuthToken({ 'interactive': true },
-                                 function (access_token) {
-      if (chrome.runtime.lastError) {
-        callback(chrome.runtime.lastError);
-        return;
-      }
-
-      var xhr = new XMLHttpRequest();
-      xhr.open(method, url);
-      xhr.setRequestHeader('Authorization',
-                           'Bearer ' + access_token);
-
-      xhr.onload = function () {
-        if (this.status === 401 && retry) {
-          // This status may indicate that the cached
-          // access token was invalid. Retry once with
-          // a fresh token.
-          retry = false;
-          chrome.identity.removeCachedAuthToken(
-              { 'token': access_token },
-              getTokenAndXhr);
+function authenticatedXhr(method, url, data) {
+  return new Promise(function(resolve, reject) {
+    
+    var retry = true;
+    function getTokenAndXhr() {
+      chrome.identity.getAuthToken({ 'interactive': true },
+                                   function (access_token) {
+        if (chrome.runtime.lastError) {
+          reject(Error(chrome.runtime.lastError));
           return;
         }
 
-        callback(null, this.status, this.responseText);
-      };
-      xhr.send();
-    });
-  }
-  getTokenAndXhr();
+        var xhr = new XMLHttpRequest();
+        xhr.open(method, url);
+        xhr.setRequestHeader('Authorization',
+                             'Bearer ' + access_token);
+
+        xhr.onload = function () {
+          if (this.status === 401 && retry) {
+            // This status may indicate that the cached
+            // access token was invalid. Retry once with
+            // a fresh token.
+            retry = false;
+            chrome.identity.removeCachedAuthToken(
+                { 'token': access_token },
+                getTokenAndXhr);
+            return;
+          }
+          if (this.status == 200) {
+            // Resolve the promise with the response text
+            resolve(this.responseText);
+          }
+          else {
+            // Otherwise reject with the status text
+            // which will hopefully be a meaningful error
+            reject(Error(this.statusText));
+          }
+        };
+        xhr.send(data);
+      });
+    }
+    getTokenAndXhr();
+  });
 }
 
-var contacts = null;
-var friends = null;
+var contacts = [];
+var friends = [];
+var all_done = false;
 var update_fn = function() {};
 
 function getFBFriendsList() {
@@ -73,11 +83,150 @@ function getFBFriendsList() {
   return friends_list;
 }
 
-function onContacts(err, status, text) {
-  contacts = [];/*
-  console.log(err);
-  console.log(status);
-  console.log(text);
+async function populateFriends() {
+  friends = await getFBFriendsList();
+  friends.splice(3);
+    
+  return Promise.all(friends.map(function(friend) {
+    var uid = friend['uid'];
+    return sleep(Math.random()*1000*friends.length).then(
+    () => fetch('https://www.facebook.com/'+uid+'/about?section=contact-info', { credentials: 'include' })).then(function(response){
+      return response.text();
+    }).then(function(txt) {
+      var parser = new DOMParser();
+      var htmlDoc = parser.parseFromString(txt, "text/html");
+      var code_blocks = htmlDoc.evaluate('/html/body/div/code', htmlDoc);
+      
+      
+      var code;
+      while(code=code_blocks.iterateNext()) {
+        var innerDoc = parser.parseFromString(code.innerHTML.substr(4), "text/html");
+        // todo:  This might match too much.
+        var headings = innerDoc.evaluate('//*[@role="heading"][@aria-level="6"]', innerDoc);
+        
+        var heading;
+        while(heading=headings.iterateNext()) {
+          // todo: Key will be locale specific.
+          // Todo:  if multiple of an item are listed, they get concatinated.
+          friend[heading.innerText] = heading.parentElement.nextSibling.innerText;
+        }
+      };
+      friend['loaded'] = true;
+      console.log(friend);
+      update_fn();
+      return friend;
+    });
+    
+  }));
+
+  
+}
+
+async function createContactGroupInternal() {
+  var data = {
+    "contactGroup": {
+      "name": "Facebook " + new Date().toLocaleString()
+    }
+  };
+
+  var response = await authenticatedXhr("POST", "https://people.googleapis.com/v1/contactGroups", JSON.stringify(data));
+  
+  return JSON.parse(response).resourceName
+
+}
+
+createContactGroup.value = null;
+function createContactGroup(){
+    if(createContactGroup.value) return createContactGroup.value;
+    return (createContactGroup.value = createContactGroupInternal());
+}
+
+async function addContact(friend) {
+  data = {
+	    "names": [
+	    {
+	      "familyName": friend['lastname'],
+	      "givenName": friend['firstname']
+	    }
+	  ],
+	  "userDefined": [],
+	  "phoneNumbers": []
+	  
+	};
+  if (friend['Mobile Phones'])
+    data.phoneNumbers.push( { "value": friend['Mobile Phones'], "type": 'mobile' });
+
+  if (friend['Other Phones'])
+    data.phoneNumbers.push( { "value": friend['Other Phones'], "type": 'other' });
+  
+  if (friend['Gender'])
+    data.genders = [ { "value": friend['Gender'].toLowerCase() } ];
+  
+  if (friend['Birthday']) {
+    var matches = friend['Birthday'].match(/(\w+) (\d+)(, (\d+))?/);
+    if (matches) {
+	    var date_obj = {'year': 0};
+	    if (matches[4]) date_obj.year = parseInt(matches[4]);
+	    date_obj.day = parseInt(matches[2]);
+	    date_obj.month =  [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ].indexOf(matches[1]) + 1;
+	    
+	    data.birthdays = [ { "date": date_obj } ];
+    }
+    
+  }
+  if (friend['Email'])
+    data.emailAddresses = [ { "value": friend['Email'] } ];
+  
+  if (friend['Facebook']) {
+    data.userDefined.push({"key": "facebook", "value": friend['Facebook'] } );
+  } else {
+    data.userDefined.push({"key": "facebook", "value": "http://facebook.com/"+friend['uid'] } );
+  }
+  
+   if (friend['Websites'])
+     data.userDefined.push({"key": "website", "value": friend['Websites'] } );
+
+   if (friend['Social Links'])
+     data.userDefined.push({"key": "social", "value": friend['Social Links'] } );
+  
+   if (friend['PGP Public Key'])
+     data.userDefined.push({"key": "pgp", "value": friend['PGP Public Key'] } );
+ 
+   if (friend['Address'])
+     data.addresses = [{"formattedValue": friend['Address'] } ];
+    
+  var response = await authenticatedXhr("POST", "https://people.googleapis.com/v1/people:createContact", JSON.stringify(data));
+  // TODO:  Upload photo in subsequent request: https://developers.google.com/google-apps/contacts/v3/#addingupdating_a_photo_for_a_contact
+  
+  var id = JSON.parse(response).resourceName;
+
+  
+  var addgroupurl = "https://people.googleapis.com/v1/"+ await createContactGroup() +"/members:modify";
+  data = {
+    "resourceNamesToAdd": [
+      id
+    ]
+  };
+  
+  await authenticatedXhr("POST", addgroupurl, JSON.stringify(data));
+  
+  friend['merged'] = true;
+  update_fn();
+  return friend;
+}
+
+async function addAllContacts() {
+  return Promise.all(friends.map(async function(friend) {
+    await sleep(friends.length*2000*Math.random());
+    return addContact(friend);
+  }));
+}
+
+async function populateContacts() {
+  var url = "http://www.google.com/m8/feeds/contacts/default/full?alt=json&max-results=100000";
+  var text = await authenticatedXhr("GET", url);
+  
+  contacts = [];
   var data = JSON.parse(text);
   for (var i = 0, entry; entry = data.feed.entry[i]; i++) {
     var contact = {
@@ -92,59 +241,28 @@ function onContacts(err, status, text) {
         contact['emails'].push(email['address']);
       }
     }
+    
+    if (entry['gd$phoneNumber']) {
+      var phones = entry['gd$phoneNumber'];
+      for (var j = 0, phone; phone = phones[j]; j++) {
+        contact['emails'].push(phone['$t']);
+      }
+    }
 
     if (!contact['name']) {
       contact['name'] = contact['emails'][0] || "<Unknown>";
     }
     contacts.push(contact);
-  }*/
+  }
+  update_fn();  
+}
 
-  getFBFriendsList().then(function(new_friends) {
-    friends = new_friends;
-    //friends.splice(3);
-    
-    friends.forEach(function(friend) {
-      var uid = friend['uid'];
-      var profilepage = sleep(Math.random()*1000*friends.length).then(
-      () => fetch('https://www.facebook.com/'+uid+'/about?section=contact-info', { credentials: 'include' })).then(function(response){
-        return response.text();
-      }).then(function(txt) {
-        var parser = new DOMParser();
-        var htmlDoc = parser.parseFromString(txt, "text/html");
-        var code_blocks = htmlDoc.evaluate('/html/body/div/code', htmlDoc);
-        
-        
-        var code;
-        while(code=code_blocks.iterateNext()) {
-          var innerDoc = parser.parseFromString(code.innerHTML.substr(4), "text/html");
-          // todo:  This might match too much.
-          var headings = innerDoc.evaluate('//*[@role="heading"][@aria-level="6"]', innerDoc);
-          
-          var heading;
-          while(heading=headings.iterateNext()) {
-            // todo: Key will be locale specific.
-            // Todo:  if multiple of an item are listed, they get concatinated.
-            friend[heading.innerText] = heading.parentElement.nextSibling.innerText;
-          }
-        }
-        console.log(friend);
-        update_fn();
-      });
-      
-    });
-  
-  
-  });
+function main() {
+  all_done=false;
+
+  Promise.all([populateContacts(), populateFriends()]).then( () => { all_done = true; update_fn(); });
   
   chrome.tabs.create({ 'url' : 'contacts.html'});
 }
 
-function getContacts() {
-
-  var url = "http://www.google.com/m8/feeds/contacts/default/full?alt=json&max-results=100";
-  authenticatedXhr("GET", url, onContacts);
-  
-
-}
-
-chrome.browserAction.onClicked.addListener(getContacts);
+chrome.browserAction.onClicked.addListener(main);

@@ -1,29 +1,52 @@
 <!DOCTYPE html>
-<!--
- * Copyright (c) 2009 The Chromium Authors. All rights reserved.  Use of this
- * source code is governed by a BSD-style license that can be found in the
- * LICENSE file.
--->
 <html>
   <head>
-    <title>Your Google Contacts List</title>
+    <title>The grand contact syncer</title>
     <style type="text/css">
       body {
         font: 14px Arial;
       }
-      p {
+      .list p {
         padding:0px;
         margin:0px;
+      }
+      .left {
+        float:left;
+        width:50%
+      }
+      .right {
+        float:right;
+        width:50%
+      }
+      .merged {
+        color: green;
+      }
+      .loading {
+        color: gray;
+      }
+      button {
+        font-size: x-large;
       }
     </style>
   </head>
   <body>
+  
+  <a href="https://github.com/Hello1024/facebook-contacts"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
+  
+  <h1>The grand contact syncer</h1>
+  <p>Hi there!  This tool is in it's infancy.  It currently shows you your google contacts list on the left, and facebook on the right.   If it doesn't work, check you are signed into chrome and into facebook, and have facebook language set to English.
+  <p>Wait for everything to load, then click "Merge!".   All facebook contacts will be copied to google (in a label to keep them seperate).  You can then use <a href="https://contacts.google.com/merge">googles merge tool</a> to merge dupliates.  The merge tool takes about an hour to detect dupes.</br>
+  <p><button id=mergebutton>Merge!</button>
+  <div class=left>
     <h1>Your Google Contacts List</h1>
-    <div id="contacts">
+    <div class=list id="contacts">
     </div>
+  </div>
+  <div class=right>
     <h1>Your Facebook Contacts List</h1>
-    <div id="friends">
+    <div class=list id="friends">
     </div>
+  </div>
     <script src="contacts.js"></script>
   </body>
 </html>
