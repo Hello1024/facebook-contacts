@@ -1,6 +1,6 @@
 {
   "name": "Facebook Google contact sync tool",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "icons": { "48": "img/icon-48.png",
             "128": "img/icon-128.png" },
   "description": "Gets a list of facebook and google contacts, and allows you to copy facebook contacts to google.",
