@@ -232,37 +232,34 @@ async function addAllContacts() {
 }
 
 async function populateContacts() {
-  var url = "http://www.google.com/m8/feeds/contacts/default/full?alt=json&max-results=100000";
-  var text = await authenticatedXhr("GET", url);
-  
-  contacts = [];
+/*  var text = await authenticatedXhr("GET", "https://people.googleapis.com/v1/contactGroups");
   var data = JSON.parse(text);
-  for (var i = 0, entry; entry = data.feed.entry[i]; i++) {
-    var contact = {
-      'name' : entry['title']['$t'],
-      'id' : entry['id']['$t'],
-      'emails' : []
-    };
+  var facebookgroups = data['contactGroups'].filter(g => g[name].includes("Facebook"));
+  if (facebookgroups.length==0) return;
+  if (facebookgroups.length>1) throw Error("More than one facebook group found!  Rename some before syncing.");
+  */
+  var fields = "addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,userDefined";
+  var data = JSON.parse(await authenticatedXhr("GET", ' https://people.googleapis.com/v1/people/me/connections?pageSize=2000&personFields='+fields));
+  
+  contacts = data.connections;
+  
+  // map key value pairs to contacts
+  contacts.forEach(c => { (c.userDefined || []).forEach(u => {c[u.key] = u.value }); } );
+   
+  // map special notes to values too
+  contacts.forEach(c => { (c.biographies || []).forEach(b => {b.value.split("\n").forEach(b_line => {
+    var kv = b_line.split(":");
+    if (kv.length==2) {
+      c[kv[0]] = (c[kv[0]] || []).push(kv[1]);
+    }
+  })})});
 
-    if (entry['gd$email']) {
-      var emails = entry['gd$email'];
-      for (var j = 0, email; email = emails[j]; j++) {
-        contact['emails'].push(email['address']);
-      }
-    }
-    
-    if (entry['gd$phoneNumber']) {
-      var phones = entry['gd$phoneNumber'];
-      for (var j = 0, phone; phone = phones[j]; j++) {
-        contact['emails'].push(phone['$t']);
-      }
-    }
+  // find last contacted date
+  contacts.forEach(c => { 
+    var dates = (c.contacted || []).map(d => new Date(d.split(' '))).sort();
+    c.lastContacted = dates[dates.length-1];
+  });
 
-    if (!contact['name']) {
-      contact['name'] = contact['emails'][0] || "<Unknown>";
-    }
-    contacts.push(contact);
-  }
   update_fn();  
 }
 
