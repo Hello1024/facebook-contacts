@@ -7,6 +7,11 @@ document.getElementById('mergebutton').onclick = function() {
   bgpage.update_fn();
 }
 
+function markContactedButton(contact){
+  bgpage.markContacted(contact);
+  return false;
+}
+
 bgpage.update_fn = function() {
 
   document.getElementById('mergebutton').disabled = !bgpage.all_done;
@@ -15,10 +20,11 @@ bgpage.update_fn = function() {
   var contacts = bgpage.contacts;
   
   // Custom filtering rule
-  contacts = contacts.filter(c => c.birthdays && !c.cardReady && !c.lastContacted && c.addresses);
+  contacts = contacts.filter(c => c.birthdays && !c.card && !c.lastContacted && c.addresses);
     
   var output = document.getElementById('contacts');
-  output.innerHTML='';
+  output.innerHTML=''+contacts.length+" people";
+  
   for (var i = 0, contact; contact = contacts[i]; i++) {
     var div = document.createElement('div');
 
@@ -32,6 +38,12 @@ bgpage.update_fn = function() {
     pA.href = 'https://www.google.com/contacts/u/0/?cplus=1#contact/'+contact.metadata.sources[0].id;
     pA.innerText="(google)";
     div.appendChild(pA);
+
+    var pA = document.createElement('a');
+    pA.onclick = markContactedButton.bind(null, contact);
+    pA.innerText="(mark contacted)";
+    pA.href='#';
+    div.appendChild(pA);
     
 
     var ulEmails = document.createElement('ul');
@@ -39,9 +51,11 @@ bgpage.update_fn = function() {
     var pMessage = document.createElement('p');
     pMessage.innerText = 
     `Hi ${contact.names[0].givenName},
-Haven't heard from you for years, and thought I'd at least send a christmas card, but having '${contact.addresses[0].formattedValue}' in my address book isn't so helpful!  Do you have a more specific location...?`;
+Haven't heard from you for years, and thought I'd at least send a christmas card, but addressing it to '${contact.addresses[0].formattedValue}' might leave the postman quizical!  Do you have a more specific location...?
+
+We should catch up sometime too!
+`;
     div.appendChild(pMessage);
-    
 
     for (var j = 0, email; email = (contact['emailAddresses'] || [])[j]; j++) {
       var liEmail = document.createElement('li');

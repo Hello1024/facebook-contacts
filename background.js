@@ -149,6 +149,23 @@ function createContactGroup(){
     return (createContactGroup.value = createContactGroupInternal());
 }
 
+async function markContacted(contact) {
+  var person = {
+    'metadata': {
+      'sources': [ contact.metadata.sources[0] ]
+    },
+    biographies: contact.biographies || [{'value':''}]
+  }
+  
+  person.biographies[0].value += "\ncontacted: "+(new Date().toISOString().slice(0,10));
+
+  var new_contact = JSON.parse(await authenticatedXhr("PATCH", "https://people.googleapis.com/v1/"+contact.resourceName+":updateContact?updatePersonFields=biographies", JSON.stringify(person)));
+  
+  return false;
+  
+  
+}
+
 async function addContact(friend) {
   data = {
 	    "names": [
@@ -250,13 +267,13 @@ async function populateContacts() {
   contacts.forEach(c => { (c.biographies || []).forEach(b => {b.value.split("\n").forEach(b_line => {
     var kv = b_line.split(":");
     if (kv.length==2) {
-      c[kv[0]] = (c[kv[0]] || []).push(kv[1]);
+      (c[kv[0]] = c[kv[0]] || []).push(kv[1]);
     }
   })})});
 
   // find last contacted date
   contacts.forEach(c => { 
-    var dates = (c.contacted || []).map(d => new Date(d.split(' '))).sort();
+    var dates = (c.contacted || []).map(d => new Date(d.split(' ')[0].trim())).sort();
     c.lastContacted = dates[dates.length-1];
   });
 
