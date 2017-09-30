@@ -7,11 +7,19 @@ document.getElementById('mergebutton').onclick = function() {
   bgpage.update_fn();
 }
 
-function markContactedButton(contact){
-  bgpage.markContacted(contact);
+function markContactedButton(contact, tag){
+  bgpage.markContacted(contact, tag);
   return false;
 }
 
+function formatNumber(x) {
+  x = x%100;
+  if (x>10 && x<19) return '' + x + 'th';
+  if (x%10 == 1) return '' + x + 'st';
+  if (x%10 == 2) return '' + x + 'nd';
+  if (x%10 == 3) return '' + x + 'rd';
+  return '' + x + 'th';
+}
 bgpage.update_fn = function() {
 
   document.getElementById('mergebutton').disabled = !bgpage.all_done;
@@ -19,11 +27,45 @@ bgpage.update_fn = function() {
 
   var contacts = bgpage.contacts;
   
+  function dateval(contact) {
+    if (contact.birthdays) return ((contact.birthdays[0].date.month-1 -1 +6-(new Date()).getUTCMonth()+24)%12) *100 + contact.birthdays[0].date.day;
+    return 0
+  }
+  contacts.sort( (a, b) => dateval(a) - dateval(b) );
+  
   // Custom filtering rule
-  contacts = contacts.filter(c => c.birthdays && !c.card && !c.lastContacted && c.addresses);
+  //contacts = contacts.filter(c => c.birthdays && !c.card && !c.lastContacted && c.addresses);
+  contacts = contacts.filter(c => c.card && !c.cardprinted);
     
   var output = document.getElementById('contacts');
   output.innerHTML=''+contacts.length+" people";
+  
+  
+  var div = document.createElement('textarea');
+  output.appendChild(div);
+  outlines = []
+  for (var i = 0, contact; (contact = contacts[i]) && i<20; i++) {
+    outlines.push(contact.names[0].givenName);
+    outlines.push(contact.names[0].familyName);
+    var addr = contact.addresses[0].formattedValue.trim();
+    if (addr.includes('\n')) {
+      addr = addr.split('\n');
+    } else {
+      addr = addr.split(',');    
+    }
+    if (addr.length <= 1) throw Error('Invalid address?!');
+    while (addr.length<5) {
+      addr.push('');
+    }
+    if (addr.length != 5) throw Error('Invalid address (too long)?!');
+    outlines=outlines.concat(addr);
+    var m = (contact.birthdays[0].date.month -1 + 6) % 12;
+    var months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
+    
+    outlines.push(formatNumber(contact.birthdays[0].date.day) + ' ' + months[m]);
+  }
+  
+  div.value = outlines.map(a => a.replace(/(\r\n|\n|\r)/gm,"").trim()).join('\n');
   
   for (var i = 0, contact; contact = contacts[i]; i++) {
     var div = document.createElement('div');
@@ -40,11 +82,16 @@ bgpage.update_fn = function() {
     div.appendChild(pA);
 
     var pA = document.createElement('a');
-    pA.onclick = markContactedButton.bind(null, contact);
+    pA.onclick = markContactedButton.bind(null, contact, "contacted: "+(new Date().toISOString().slice(0,10)));
     pA.innerText="(mark contacted)";
     pA.href='#';
     div.appendChild(pA);
-    
+
+    var pA = document.createElement('a');
+    pA.onclick = markContactedButton.bind(null, contact, "cardprinted: true");
+    pA.innerText="(mark card done)";
+    pA.href='#';
+    div.appendChild(pA);
 
     var ulEmails = document.createElement('ul');
     

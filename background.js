@@ -10,6 +10,7 @@ function authenticatedXhr(method, url, data) {
   return new Promise(function(resolve, reject) {
     
     var retry = true;
+    var backoff = 1000;
     function getTokenAndXhr() {
       chrome.identity.getAuthToken({ 'interactive': true },
                                    function (access_token) {
@@ -37,6 +38,11 @@ function authenticatedXhr(method, url, data) {
           if (this.status == 200) {
             // Resolve the promise with the response text
             resolve(this.responseText);
+          }
+          if (this.status == 429) {
+            // Rate limit hit.   Exponentially back off.
+            setTimeout(getTokenAndXhr, backoff);
+            backoff = backoff*2;
           }
           else {
             // Otherwise reject with the status text
@@ -149,7 +155,7 @@ function createContactGroup(){
     return (createContactGroup.value = createContactGroupInternal());
 }
 
-async function markContacted(contact) {
+async function markContacted(contact, tag) {
   var person = {
     'metadata': {
       'sources': [ contact.metadata.sources[0] ]
@@ -157,7 +163,7 @@ async function markContacted(contact) {
     biographies: contact.biographies || [{'value':''}]
   }
   
-  person.biographies[0].value += "\ncontacted: "+(new Date().toISOString().slice(0,10));
+  person.biographies[0].value += "\n"+tag;
 
   var new_contact = JSON.parse(await authenticatedXhr("PATCH", "https://people.googleapis.com/v1/"+contact.resourceName+":updateContact?updatePersonFields=biographies", JSON.stringify(person)));
   
