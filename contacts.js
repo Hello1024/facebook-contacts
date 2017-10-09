@@ -34,8 +34,8 @@ bgpage.update_fn = function() {
   contacts.sort( (a, b) => dateval(a) - dateval(b) );
   
   // Custom filtering rule
-  //contacts = contacts.filter(c => c.birthdays && !c.card && !c.lastContacted && c.addresses);
-  contacts = contacts.filter(c => c.card && !c.cardprinted);
+  //contacts = contacts.filter(c => c.birthdays && !c.card && !c.lastContacted && !c.addresses);
+  contacts = contacts.filter(c => c.card && !c.cardprinted && c.birthdays);
     
   var output = document.getElementById('contacts');
   output.innerHTML=''+contacts.length+" people";
@@ -96,9 +96,12 @@ bgpage.update_fn = function() {
     var ulEmails = document.createElement('ul');
     
     var pMessage = document.createElement('p');
-    pMessage.innerText = 
+/*    pMessage.innerText = 
     `Hi ${contact.names[0].givenName},
 Haven't heard from you for years, and thought I'd at least send a christmas card, but addressing it to '${contact.addresses[0].formattedValue}' might leave the postman quizical!  Do you have a more specific location...?
+*/
+    pMessage.innerText = 
+    `Morning ${contact.names[0].givenName}, It seems I haven't heard from you for aaaaages!  The least I could do is send a Christmas card - Where should I send it?
 
 We should catch up sometime too!
 `;
