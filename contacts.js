@@ -27,15 +27,17 @@ bgpage.update_fn = function() {
 
   var contacts = bgpage.contacts;
   
+  // Custom filtering rule
+  //contacts = contacts.filter(c => c.birthdays && !c.card && !c.lastContacted && !c.addresses);
+  contacts = contacts.filter(c => c.card && !c.card2007printed);
+
   function dateval(contact) {
     if (contact.birthdays) return ((contact.birthdays[0].date.month-1 -1 +6-(new Date()).getUTCMonth()+24)%12) *100 + contact.birthdays[0].date.day;
     return 0
   }
-  contacts.sort( (a, b) => dateval(a) - dateval(b) );
+  //contacts.sort( (a, b) => dateval(a) - dateval(b) );
+  contacts.sort( (a, b) => {  if (a.addresses[0].formattedValue.trim() < b.addresses[0].formattedValue.trim()) return -1; if (a.addresses[0].formattedValue.trim() > b.addresses[0].formattedValue.trim()) return 1; return 0;} );
   
-  // Custom filtering rule
-  //contacts = contacts.filter(c => c.birthdays && !c.card && !c.lastContacted && !c.addresses);
-  contacts = contacts.filter(c => c.card && !c.cardprinted && c.birthdays);
     
   var output = document.getElementById('contacts');
   output.innerHTML=''+contacts.length+" people";
@@ -59,10 +61,14 @@ bgpage.update_fn = function() {
     }
     if (addr.length != 5) throw Error('Invalid address (too long)?!');
     outlines=outlines.concat(addr);
-    var m = (contact.birthdays[0].date.month -1 + 6) % 12;
-    var months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
+    //var m = (contact.birthdays[0].date.month -1 + 6) % 12;
+    //var months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
     
-    outlines.push(formatNumber(contact.birthdays[0].date.day) + ' ' + months[m]);
+    //outlines.push(formatNumber(contact.birthdays[0].date.day) + ' ' + months[m]);
+    if (contact.nicknames)
+      outlines.push(contact.nicknames[0].value)
+    else
+      outlines.push(contact.names[0].givenName)
   }
   
   div.value = outlines.map(a => a.replace(/(\r\n|\n|\r)/gm,"").trim()).join('\n');
